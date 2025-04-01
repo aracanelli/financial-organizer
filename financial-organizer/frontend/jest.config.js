@@ -1,4 +1,5 @@
 module.exports = {
+  testEnvironment: 'jsdom',
   transform: {
     '^.+\\.(js|jsx)$': 'babel-jest',
   },
@@ -7,5 +8,6 @@ module.exports = {
   ],
   moduleNameMapper: {
     '^axios$': '<rootDir>/node_modules/axios/dist/axios.js'
-  }
+  },
+  setupFilesAfterEnv: ['<rootDir>/src/setupTests.js']
 }; 

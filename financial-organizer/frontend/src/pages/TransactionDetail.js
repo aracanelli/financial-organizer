@@ -48,7 +48,9 @@ const TransactionDetail = () => {
   const fetchTransactionDetails = async () => {
     try {
       setLoading(true);
+      console.log('Fetching transaction details for ID:', id);
       const response = await axios.get(`/api/transactions/${id}`);
+      console.log('Transaction details response:', response.data);
       setTransaction(response.data);
       
       // Fetch card details if card_id exists
@@ -60,6 +62,8 @@ const TransactionDetail = () => {
       setError(null);
     } catch (err) {
       console.error('Error fetching transaction details:', err);
+      console.error('Error response data:', err.response?.data);
+      console.error('Error status:', err.response?.status);
       setError('Failed to load transaction details. Please try again later.');
     } finally {
       setLoading(false);
@@ -151,11 +155,11 @@ const TransactionDetail = () => {
   // Return a color based on transaction type
   const getTransactionTypeColor = (type) => {
     switch (type) {
-      case 'PURCHASE':
+      case 'purchase':
         return 'error';  // red
-      case 'REFUND':
+      case 'refund':
         return 'success';  // green
-      case 'PAYMENT':
+      case 'payment':
         return 'warning';  // orange
       default:
         return 'default';
@@ -165,15 +169,15 @@ const TransactionDetail = () => {
   // Return a color based on category
   const getCategoryColor = (category) => {
     switch (category) {
-      case 'GROCERIES':
+      case 'groceries':
         return 'primary';
-      case 'UTILITIES':
+      case 'utilities':
         return 'secondary';
-      case 'ENTERTAINMENT':
+      case 'entertainment':
         return 'info';
-      case 'TRANSPORTATION':
+      case 'transportation':
         return 'warning';
-      case 'SHOPPING':
+      case 'shopping':
         return 'error';
       default:
         return 'default';
@@ -265,8 +269,8 @@ const TransactionDetail = () => {
 
               <Box sx={{ my: 2 }}>
                 <Typography variant="h4" component="p" sx={{ 
-                  color: transaction.transaction_type === 'REFUND' ? 'green' : 
-                         transaction.transaction_type === 'PAYMENT' ? 'orange' : 'inherit'
+                  color: transaction.transaction_type === 'refund' ? 'green' : 
+                         transaction.transaction_type === 'payment' ? 'orange' : 'inherit'
                 }}>
                   ${transaction.amount.toFixed(2)}
                 </Typography>

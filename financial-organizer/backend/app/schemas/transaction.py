@@ -6,8 +6,8 @@ from app.db.models import TransactionType, Category
 class TransactionBase(BaseModel):
     amount: float
     description: str
-    transaction_type: TransactionType
-    category: Category
+    transaction_type: str
+    category: str
     merchant_name: str
     date: datetime
     receipt_path: Optional[str] = None
@@ -33,4 +33,4 @@ class Transaction(TransactionInDBBase):
     pass
 
 class TransactionInDB(TransactionInDBBase):
-    pass 
+    pass
