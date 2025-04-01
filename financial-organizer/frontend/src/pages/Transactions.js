@@ -110,6 +110,9 @@ const Transactions = () => {
       setSelectedTransaction(transaction);
     } else {
       // Reset form for adding new transaction
+      // Ensure card_id is set to a number if cards are available
+      const defaultCardId = cards.length > 0 ? cards[0].id : '';
+      
       setFormData({
         amount: '',
         description: '',
@@ -117,7 +120,7 @@ const Transactions = () => {
         category: 'GROCERIES',
         merchant_name: '',
         date: new Date().toISOString().split('T')[0],
-        card_id: cards.length > 0 ? cards[0].id : ''
+        card_id: defaultCardId
       });
     }
     
@@ -131,10 +134,19 @@ const Transactions = () => {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
+    
+    // Handle special case for card_id to ensure it's a number
+    if (name === 'card_id') {
+      setFormData({
+        ...formData,
+        [name]: value === '' ? '' : Number(value)
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [name]: value
+      });
+    }
   };
 
   const handleSubmit = async () => {
@@ -149,10 +161,15 @@ const Transactions = () => {
         return;
       }
 
+      // Format the payload with the proper date format
       const payload = {
         ...formData,
-        amount: parseFloat(formData.amount)
+        amount: parseFloat(formData.amount),
+        // Add datetime component to date string for proper ISO format
+        date: new Date(formData.date + 'T00:00:00').toISOString()
       };
+
+      console.log('Sending transaction payload:', payload);
 
       if (dialogMode === 'add') {
         await axios.post('/api/transactions/', payload);
@@ -174,9 +191,11 @@ const Transactions = () => {
       fetchTransactions();
     } catch (err) {
       console.error('Error saving transaction:', err);
+      // Display more detailed error messages from the API if available
+      const errorMessage = err.response?.data?.detail || `Failed to ${dialogMode === 'add' ? 'add' : 'update'} transaction`;
       setSnackbar({
         open: true,
-        message: `Failed to ${dialogMode === 'add' ? 'add' : 'update'} transaction`,
+        message: errorMessage,
         severity: 'error'
       });
     }
