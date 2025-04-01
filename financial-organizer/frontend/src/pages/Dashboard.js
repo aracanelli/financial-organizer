@@ -2,6 +2,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { AuthContext } from '../contexts/AuthContext';
 import axios from 'axios';
+import API from '../utils/api'; // Import the new API utility
 import Typography from '@mui/material/Typography';
 import Grid from '@mui/material/Grid';
 import Card from '@mui/material/Card';
@@ -21,6 +22,9 @@ import Paper from '@mui/material/Paper';
 import { VisibilityOutlined as ViewIcon } from '@mui/icons-material';
 import { IconButton } from '@mui/material';
 
+// Add a debugging log to track component loading
+console.log('Dashboard component loaded at', new Date().toISOString());
+
 const Dashboard = () => {
   const { currentUser } = useContext(AuthContext);
   const [loading, setLoading] = useState(true);
@@ -34,17 +38,53 @@ const Dashboard = () => {
   const [recentTransactions, setRecentTransactions] = useState([]);
 
   useEffect(() => {
+    // Add a log to confirm the effect is running
+    console.log('Dashboard useEffect running at', new Date().toISOString());
+    
+    // Track source of invocation - this will help us see where in the call stack 
+    // the issue occurs if the error happens on line 43-ish
+    console.trace('Call stack for Dashboard useEffect');
+    
     const fetchDashboardData = async () => {
+      console.log('fetchDashboardData starting...'); // Debug log
       try {
         setLoading(true);
         setError(null);
         
-        // Fetch transactions
-        const transactionsResponse = await axios.get('/api/transactions/');
+        // THE PROBLEMATIC PART SEEMS TO BE HERE - Add more visibility
+        console.log('Line 43 approaching - API object:', API);
+        console.log('API baseURL:', API.defaults.baseURL);
+        
+        console.log('About to make API call to transactions using API utility'); // Debug log
+        // Use API utility instead of axios directly - with explicit error handling
+        let transactionsResponse;
+        
+        // Instead of using the API utility directly, use a more controlled approach
+        // to see exactly what's happening
+        try {
+          const url = '/transactions/';
+          console.log(`Making request to: ${API.defaults.baseURL}${url}`);
+          transactionsResponse = await API.get(url);
+          console.log('Successful API call to /transactions/', transactionsResponse.status); // Debug log
+        } catch (apiError) {
+          console.error('API call to /transactions/ failed:', apiError);
+          console.error('Error config:', apiError.config);
+          throw apiError; // Re-throw to be caught by the outer catch
+        }
+        
         const transactions = transactionsResponse.data;
         
-        // Fetch cards
-        const cardsResponse = await axios.get('/api/cards/');
+        console.log('About to make API call to cards using API utility'); // Debug log
+        // Use API utility for cards too - with explicit error handling
+        let cardsResponse;
+        try {
+          cardsResponse = await API.get('/cards/');
+          console.log('Successful API call to /cards/', cardsResponse.status); // Debug log
+        } catch (apiError) {
+          console.error('API call to /cards/ failed:', apiError);
+          throw apiError; // Re-throw to be caught by the outer catch
+        }
+        
         const cards = cardsResponse.data;
         
         // Calculate statistics

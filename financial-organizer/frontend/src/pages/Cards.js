@@ -64,7 +64,7 @@ const Cards = () => {
   const fetchCards = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/cards/');
+      const response = await axios.get('/api/v1/cards/');
       setCards(response.data);
       setError(null);
     } catch (err) {
@@ -174,7 +174,7 @@ const Cards = () => {
       let response;
       if (editingCard) {
         // Update existing card
-        response = await axios.put(`/api/cards/${editingCard.id}`, cardData);
+        response = await axios.put(`/api/v1/cards/${editingCard.id}`, cardData);
         
         setSnackbar({
           open: true,
@@ -183,7 +183,7 @@ const Cards = () => {
         });
       } else {
         // Create new card
-        response = await axios.post('/api/cards/', cardData);
+        response = await axios.post('/api/v1/cards/', cardData);
         
         setSnackbar({
           open: true,
@@ -215,7 +215,7 @@ const Cards = () => {
     
     try {
       setLoading(true);
-      await axios.delete(`/api/cards/${id}`);
+      await axios.delete(`/api/v1/cards/${id}`);
       
       setSnackbar({
         open: true,

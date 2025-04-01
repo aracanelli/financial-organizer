@@ -49,13 +49,13 @@ const TransactionDetail = () => {
     try {
       setLoading(true);
       console.log('Fetching transaction details for ID:', id);
-      const response = await axios.get(`/api/transactions/${id}`);
+      const response = await axios.get(`/api/v1/transactions/${id}`);
       console.log('Transaction details response:', response.data);
       setTransaction(response.data);
       
       // Fetch card details if card_id exists
       if (response.data.card_id) {
-        const cardResponse = await axios.get(`/api/cards/${response.data.card_id}`);
+        const cardResponse = await axios.get(`/api/v1/cards/${response.data.card_id}`);
         setCard(cardResponse.data);
       }
       
@@ -73,7 +73,7 @@ const TransactionDetail = () => {
   const handleDelete = async () => {
     if (window.confirm('Are you sure you want to delete this transaction?')) {
       try {
-        await axios.delete(`/api/transactions/${id}`);
+        await axios.delete(`/api/v1/transactions/${id}`);
         navigate('/transactions', { replace: true });
       } catch (err) {
         console.error('Error deleting transaction:', err);
@@ -115,7 +115,7 @@ const TransactionDetail = () => {
 
     try {
       setUploading(true);
-      await axios.post('/api/receipts/', formData, {
+      await axios.post('/api/v1/receipts/', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }

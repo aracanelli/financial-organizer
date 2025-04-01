@@ -2,6 +2,31 @@ import React, { createContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 
+// Configure axios defaults
+axios.defaults.baseURL = 'http://localhost:8000';
+
+// Add API version to all requests
+axios.interceptors.request.use(config => {
+  console.log('Axios interceptor received request URL:', config.url);
+  console.log('Request origin stack:', new Error().stack);
+  
+  // Force all API calls to use the v1 prefix
+  if (config.url) {
+    // If it's an API call but doesn't have the v1 prefix
+    if (config.url.includes('/api/') && !config.url.includes('/api/v1/')) {
+      // Replace just the /api/ part with /api/v1/
+      const oldUrl = config.url;
+      config.url = config.url.replace(/\/api\//g, '/api/v1/');
+      console.log(`Interceptor FORCED update: "${oldUrl}" → "${config.url}"`);
+    }
+  }
+  
+  return config;
+}, error => {
+  console.error('Axios interceptor error:', error);
+  return Promise.reject(error);
+});
+
 export const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
@@ -68,7 +93,7 @@ export const AuthProvider = ({ children }) => {
       formData.append('username', email); // FastAPI OAuth expects 'username'
       formData.append('password', password);
       
-      const response = await axios.post('/api/auth/login', formData, {
+      const response = await axios.post('/api/v1/auth/login', formData, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded'
         }
@@ -100,7 +125,7 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       
-      await axios.post('/api/auth/register', {
+      await axios.post('/api/v1/auth/register', {
         email,
         password,
         full_name: fullName,

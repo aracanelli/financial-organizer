@@ -4,12 +4,12 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-from app.main import app
-from app.db.base import Base
-from app.db.session import get_db
-from app.core.config import settings
-from app.services import auth_service
-from app.schemas.auth import UserCreate
+from app.app.main import app
+from app.app.db.base import Base
+from app.app.db.session import get_db
+from app.app.core.config import settings
+from app.app.services import auth_service
+from app.app.schemas.auth import UserCreate
 
 # In-memory SQLite for testing
 SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"

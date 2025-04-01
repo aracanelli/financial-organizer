@@ -76,7 +76,7 @@ const Transactions = () => {
   const fetchTransactions = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('/api/transactions/');
+      const response = await axios.get('/api/v1/transactions/');
       setTransactions(response.data);
       setError(null);
     } catch (err) {
@@ -89,7 +89,7 @@ const Transactions = () => {
 
   const fetchCards = async () => {
     try {
-      const response = await axios.get('/api/cards/');
+      const response = await axios.get('/api/v1/cards/');
       setCards(response.data);
     } catch (err) {
       console.error('Error fetching cards:', err);
@@ -209,7 +209,7 @@ const Transactions = () => {
       let response;
       if (dialogMode === 'add') {
         try {
-          response = await axios.post('/api/transactions/', payload);
+          response = await axios.post('/api/v1/transactions/', payload);
           console.log('✅ Server response:', response.data);
           setSnackbar({
             open: true,
@@ -224,7 +224,7 @@ const Transactions = () => {
         }
       } else {
         try {
-          response = await axios.put(`/api/transactions/${selectedTransaction.id}`, payload);
+          response = await axios.put(`/api/v1/transactions/${selectedTransaction.id}`, payload);
           console.log('✅ Server response:', response.data);
           setSnackbar({
             open: true,
@@ -302,7 +302,7 @@ const Transactions = () => {
       console.log('🧪 TEST PAYLOAD:', JSON.stringify(testPayload, null, 2));
       
       try {
-        const response = await axios.post('/api/transactions/', testPayload);
+        const response = await axios.post('/api/v1/transactions/', testPayload);
         console.log('✅ TEST SUCCESSFUL:', response.data);
         
         setSnackbar({
@@ -378,7 +378,7 @@ const Transactions = () => {
       
       console.log('🧪 MINIMAL PAYLOAD:', JSON.stringify(minimalPayload, null, 2));
       
-      const response = await axios.post('/api/transactions/', minimalPayload);
+      const response = await axios.post('/api/v1/transactions/', minimalPayload);
       console.log('✅ MINIMAL TEST SUCCESSFUL:', response.data);
       
       fetchTransactions(); // Refresh the list
@@ -414,7 +414,7 @@ const Transactions = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this transaction?')) {
       try {
-        await axios.delete(`/api/transactions/${id}`);
+        await axios.delete(`/api/v1/transactions/${id}`);
         setSnackbar({
           open: true,
           message: 'Transaction deleted successfully',

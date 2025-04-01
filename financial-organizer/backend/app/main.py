@@ -15,18 +15,23 @@ app = FastAPI(
     title="Financial Organizer API",
     description="API for organizing financial transactions and receipts",
     version="0.1.0",
+    openapi_url=f"{settings.API_V1_STR}/openapi.json"
 )
 
-# Set up CORS middleware
+# Set all CORS enabled origins
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Include the API router
+# Include the API router under the versioned path
+app.include_router(api_router, prefix=settings.API_V1_STR)
+
+# BACKWARD COMPATIBILITY: Include the same router under the non-versioned path
+# This will allow old API calls to /api/transactions/ to work while we transition
 app.include_router(api_router, prefix="/api")
 
 # Mount static files directory for uploaded receipts if it exists

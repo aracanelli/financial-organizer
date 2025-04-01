@@ -75,7 +75,7 @@ class Receipt(BaseModel):
     # Relationships
     transaction = relationship("Transaction", back_populates="receipt")
 
-class RecurringTransaction(Base):
+class RecurringTransaction(BaseModel):
     __tablename__ = "recurring_transactions"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -89,7 +89,7 @@ class RecurringTransaction(Base):
     end_date = Column(Date, nullable=True)
     next_date = Column(Date, nullable=False)
     is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     user = relationship("User", back_populates="recurring_transactions") 

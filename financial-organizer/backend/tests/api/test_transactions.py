@@ -1,106 +1,137 @@
 from fastapi.testclient import TestClient
 import pytest
 from sqlalchemy.orm import Session
+import datetime
 
-from app.db.models import Transaction
-from app.core.config import settings
-from app.tests.utils.utils import random_lower_string
-from app.tests.utils.user import create_random_user
-from app.tests.utils.transaction import create_random_transaction
+from app.app.services import transaction_service
+from app.app.db.models import User, Transaction
+from app.app.schemas.transaction import TransactionCreate, TransactionUpdate
 
 
-def test_create_transaction(
-    client: TestClient, superuser_token_headers: dict, db: Session
-) -> None:
-    data = {
-        "amount": 125.50,
-        "transaction_type": "purchase",
+@pytest.fixture
+def test_transaction(db_session: Session, test_user: User):
+    """Create a test transaction in the database."""
+    transaction_data = {
+        "amount": 100.50,
+        "transaction_type": "expense",
         "category": "groceries",
-        "description": "Weekly grocery shopping",
-        "date": "2025-04-01",
+        "description": "Weekly groceries",
+        "date": datetime.date.today().isoformat()
     }
+    transaction = transaction_service.create(
+        db=db_session,
+        obj_in=TransactionCreate(**transaction_data),
+        user_id=test_user.id
+    )
+    return transaction
+
+
+def test_create_transaction(client: TestClient, test_user: User):
+    """Test creating a new transaction."""
+    # Get token for the test user
     response = client.post(
-        f"{settings.API_V1_STR}/transactions/", headers=superuser_token_headers, json=data,
+        "/api/v1/auth/login",
+        data={
+            "username": test_user.email,
+            "password": "testpassword"
+        }
     )
-    assert response.status_code == 200
-    content = response.json()
-    assert content["amount"] == 125.5
-    assert content["transaction_type"] == "purchase"
-    assert content["category"] == "groceries"
-    assert content["description"] == "Weekly grocery shopping"
-    assert "id" in content
-    assert "user_id" in content
-
-
-def test_read_transaction(
-    client: TestClient, superuser_token_headers: dict, db: Session
-) -> None:
-    user = create_random_user(db)
-    transaction = create_random_transaction(db=db, user_id=user.id)
-    response = client.get(
-        f"{settings.API_V1_STR}/transactions/{transaction.id}", headers=superuser_token_headers,
-    )
-    assert response.status_code == 200
-    content = response.json()
-    assert content["id"] == transaction.id
-    assert content["amount"] == transaction.amount
-    assert content["transaction_type"] == transaction.transaction_type
-    assert content["category"] == transaction.category
-    assert content["description"] == transaction.description
-
-
-def test_read_transactions(
-    client: TestClient, superuser_token_headers: dict, db: Session
-) -> None:
-    user = create_random_user(db)
-    transaction1 = create_random_transaction(db=db, user_id=user.id)
-    transaction2 = create_random_transaction(db=db, user_id=user.id)
-    response = client.get(
-        f"{settings.API_V1_STR}/transactions/", headers=superuser_token_headers,
-    )
-    assert response.status_code == 200
-    content = response.json()
-    assert len(content) >= 2
-    # Check that our created transactions are in the list
-    transaction_ids = [t["id"] for t in content]
-    assert transaction1.id in transaction_ids
-    assert transaction2.id in transaction_ids
-
-
-def test_update_transaction(
-    client: TestClient, superuser_token_headers: dict, db: Session
-) -> None:
-    user = create_random_user(db)
-    transaction = create_random_transaction(db=db, user_id=user.id)
-    data = {
-        "amount": 200.75,
-        "description": "Updated description",
+    token = response.json()["access_token"]
+    
+    transaction_data = {
+        "amount": 75.25,
+        "transaction_type": "expense",
+        "category": "utilities",
+        "description": "Electricity bill",
+        "date": datetime.date.today().isoformat()
     }
-    response = client.put(
-        f"{settings.API_V1_STR}/transactions/{transaction.id}",
-        headers=superuser_token_headers,
-        json=data,
+    
+    response = client.post(
+        "/api/v1/transactions/",
+        json=transaction_data,
+        headers={"Authorization": f"Bearer {token}"}
     )
+    
+    assert response.status_code == 201
+    data = response.json()
+    assert data["amount"] == 75.25
+    assert data["category"] == "utilities"
+    assert data["user_id"] == test_user.id
+
+
+def test_get_transactions(client: TestClient, test_user: User, test_transaction: Transaction):
+    """Test retrieving all transactions for a user."""
+    response = client.post(
+        "/api/v1/auth/login",
+        data={
+            "username": test_user.email,
+            "password": "testpassword"
+        }
+    )
+    token = response.json()["access_token"]
+    
+    response = client.get(
+        "/api/v1/transactions/",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    
     assert response.status_code == 200
-    content = response.json()
-    assert content["id"] == transaction.id
-    assert content["amount"] == 200.75
-    assert content["description"] == "Updated description"
-    # These should remain unchanged
-    assert content["transaction_type"] == transaction.transaction_type
-    assert content["category"] == transaction.category
+    data = response.json()
+    assert isinstance(data, list)
+    assert len(data) >= 1
+    assert data[0]["id"] == test_transaction.id
 
 
-def test_delete_transaction(
-    client: TestClient, superuser_token_headers: dict, db: Session
-) -> None:
-    user = create_random_user(db)
-    transaction = create_random_transaction(db=db, user_id=user.id)
-    response = client.delete(
-        f"{settings.API_V1_STR}/transactions/{transaction.id}", headers=superuser_token_headers,
+def test_update_transaction(client: TestClient, test_user: User, test_transaction: Transaction):
+    """Test updating a transaction."""
+    response = client.post(
+        "/api/v1/auth/login",
+        data={
+            "username": test_user.email,
+            "password": "testpassword"
+        }
     )
+    token = response.json()["access_token"]
+    
+    update_data = {
+        "amount": 120.75,
+        "description": "Updated description"
+    }
+    
+    response = client.patch(
+        f"/api/v1/transactions/{test_transaction.id}",
+        json=update_data,
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    
+    assert response.status_code == 200
+    data = response.json()
+    assert data["amount"] == 120.75
+    assert data["description"] == "Updated description"
+    assert data["category"] == test_transaction.category  # Unchanged field
+
+
+def test_delete_transaction(client: TestClient, test_user: User, test_transaction: Transaction):
+    """Test deleting a transaction."""
+    response = client.post(
+        "/api/v1/auth/login",
+        data={
+            "username": test_user.email,
+            "password": "testpassword"
+        }
+    )
+    token = response.json()["access_token"]
+    
+    response = client.delete(
+        f"/api/v1/transactions/{test_transaction.id}",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    
     assert response.status_code == 200
     
-    # Verify transaction is deleted
-    transaction_in_db = db.query(Transaction).filter(Transaction.id == transaction.id).first()
-    assert transaction_in_db is None 
+    # Verify it's gone
+    response = client.get(
+        f"/api/v1/transactions/{test_transaction.id}",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    assert response.status_code == 404 

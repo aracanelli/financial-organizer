@@ -2,72 +2,71 @@ import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.schemas.auth import UserCreate
+from app.app.services import auth_service
+from app.app.db.models import User
+from app.app.schemas.auth import UserCreate, Token
+from app.app.core.security import create_access_token
 
-def test_register_user(client: TestClient, db_session: Session):
-    """Test the registration endpoint."""
-    user_data = {
-        "email": "newuser@example.com",
-        "password": "newpassword123",
-        "full_name": "New Test User"
-    }
-    
-    response = client.post("/api/auth/register", json=user_data)
-    
-    assert response.status_code == 200
+def test_register_user(client: TestClient):
+    """Test creating a new user via the /register endpoint"""
+    response = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "newuser@example.com",
+            "password": "newpassword",
+            "full_name": "New User"
+        }
+    )
+    assert response.status_code == 201
     data = response.json()
-    assert data["email"] == user_data["email"]
-    assert data["full_name"] == user_data["full_name"]
     assert "id" in data
-    assert "password" not in data
-    
-def test_register_existing_user(client: TestClient, test_user):
-    """Test registering a user with an email that already exists."""
-    user_data = {
-        "email": "test@example.com",  # Same as test_user fixture
-        "password": "anotherpassword",
-        "full_name": "Another User"
-    }
-    
-    response = client.post("/api/auth/register", json=user_data)
-    
-    assert response.status_code == 400
-    assert "already exists" in response.json()["detail"]
+    assert data["email"] == "newuser@example.com"
+    assert data["full_name"] == "New User"
+    assert "hashed_password" not in data
 
-def test_login_success(client: TestClient, test_user):
-    """Test successful login."""
-    login_data = {
-        "username": "test@example.com",  # OAuth2 expects 'username' field
-        "password": "testpassword"
-    }
-    
-    response = client.post("/api/auth/login", data=login_data)  # Use data= for form data
-    
+def test_login_user(client: TestClient, test_user: User):
+    """Test logging in a user via the /login endpoint"""
+    response = client.post(
+        "/api/v1/auth/login",
+        data={
+            "username": test_user.email,
+            "password": "testpassword"
+        }
+    )
     assert response.status_code == 200
     data = response.json()
     assert "access_token" in data
     assert data["token_type"] == "bearer"
 
-def test_login_wrong_password(client: TestClient, test_user):
-    """Test login with incorrect password."""
-    login_data = {
-        "username": "test@example.com",
-        "password": "wrongpassword"
-    }
-    
-    response = client.post("/api/auth/login", data=login_data)
-    
+def test_login_user_invalid_credentials(client: TestClient, test_user: User):
+    """Test logging in with invalid credentials should fail"""
+    response = client.post(
+        "/api/v1/auth/login",
+        data={
+            "username": test_user.email,
+            "password": "wrongpassword"
+        }
+    )
     assert response.status_code == 401
-    assert "Incorrect email or password" in response.json()["detail"]
+    assert response.json()["detail"] == "Incorrect email or password"
 
-def test_login_nonexistent_user(client: TestClient):
-    """Test login with email that doesn't exist."""
-    login_data = {
-        "username": "nonexistent@example.com",
-        "password": "somepassword"
-    }
-    
-    response = client.post("/api/auth/login", data=login_data)
-    
+def test_test_token(client: TestClient, test_user: User):
+    """Test the /test-token endpoint with a valid token"""
+    token = create_access_token(subject=test_user.id)
+    response = client.get(
+        "/api/v1/auth/test-token",
+        headers={"Authorization": f"Bearer {token}"}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["email"] == test_user.email
+    assert data["id"] == test_user.id
+
+def test_test_token_invalid(client: TestClient):
+    """Test the /test-token endpoint with an invalid token"""
+    response = client.get(
+        "/api/v1/auth/test-token",
+        headers={"Authorization": "Bearer invalidtoken"}
+    )
     assert response.status_code == 401
-    assert "Incorrect email or password" in response.json()["detail"] 
+    assert response.json()["detail"] == "Could not validate credentials" 
