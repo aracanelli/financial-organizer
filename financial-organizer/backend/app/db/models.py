@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Enum, JSON, Boolean
+from sqlalchemy import Column, Integer, String, Float, DateTime, ForeignKey, Enum, JSON, Boolean, Date
 from sqlalchemy.orm import relationship
 from datetime import datetime
 import enum
@@ -28,6 +28,7 @@ class User(BaseModel):
     # Relationships
     transactions = relationship("Transaction", back_populates="user")
     cards = relationship("Card", back_populates="user")
+    recurring_transactions = relationship("RecurringTransaction", back_populates="user")
 
 class Card(BaseModel):
     __tablename__ = "cards"
@@ -72,4 +73,23 @@ class Receipt(BaseModel):
     ocr_data = Column(JSON)
 
     # Relationships
-    transaction = relationship("Transaction", back_populates="receipt") 
+    transaction = relationship("Transaction", back_populates="receipt")
+
+class RecurringTransaction(Base):
+    __tablename__ = "recurring_transactions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    amount = Column(Float, nullable=False)
+    transaction_type = Column(String, nullable=False)
+    category = Column(String, nullable=False)
+    description = Column(String, nullable=True)
+    frequency = Column(String, nullable=False)
+    start_date = Column(Date, nullable=False)
+    end_date = Column(Date, nullable=True)
+    next_date = Column(Date, nullable=False)
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    
+    user = relationship("User", back_populates="recurring_transactions") 
