@@ -1,0 +1,5 @@
+[33mcommit 93ead8757e6029e4956d4623c5c4dae11e1542f6[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m)[m
+Author: aracanelli <ant.racanelli@gmail.com>
+Date:   Tue Apr 1 18:05:31 2025 -0400
+
+    Fix database schema and UI issues: - Convert transaction enum fields to strings - Fix card plaid_item_id unique constraint - Improve date handling in frontend - Add comprehensive changelog

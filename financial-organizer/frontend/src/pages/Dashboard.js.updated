@@ -1,0 +1,208 @@
+import React, { useState, useEffect } from 'react';
+import { Grid, Paper, Typography, Box, Card, CardContent, Divider, Button } from '@mui/material';
+import { styled } from '@mui/material/styles';
+import { Link as RouterLink } from 'react-router-dom';
+import api from '../api';
+import SpendingVisualization from '../components/SpendingVisualization';
+
+const Item = styled(Paper)(({ theme }) => ({
+  backgroundColor: theme.palette.mode === 'dark' ? '#1A2027' : '#fff',
+  ...theme.typography.body2,
+  padding: theme.spacing(2),
+  color: theme.palette.text.primary,
+}));
+
+const formatDate = (dateString) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString();
+};
+
+const Dashboard = () => {
+  const [transactions, setTransactions] = useState([]);
+  const [cards, setCards] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [stats, setStats] = useState({
+    totalSpent: 0,
+    totalIncome: 0,
+    transactionCount: 0,
+    cardCount: 0,
+  });
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch transactions
+        const transactionsResponse = await api.get('/transactions/');
+        const transactionData = transactionsResponse.data;
+        setTransactions(transactionData);
+        
+        // Fetch cards
+        const cardsResponse = await api.get('/cards/');
+        setCards(cardsResponse.data);
+        
+        // Calculate stats
+        const spent = transactionData
+          .filter(t => t.transaction_type.toLowerCase() === 'purchase')
+          .reduce((sum, t) => sum + t.amount, 0);
+        
+        const income = transactionData
+          .filter(t => t.transaction_type.toLowerCase() === 'deposit')
+          .reduce((sum, t) => sum + t.amount, 0);
+        
+        setStats({
+          totalSpent: spent,
+          totalIncome: income,
+          transactionCount: transactionData.length,
+          cardCount: cardsResponse.data.length,
+        });
+        
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching dashboard data:', err);
+        setError('Failed to load dashboard data. Please try again later.');
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
+
+  // Get recent transactions
+  const recentTransactions = transactions
+    .sort((a, b) => new Date(b.date) - new Date(a.date))
+    .slice(0, 5);
+
+  return (
+    <Box p={3}>
+      <Typography variant="h4" component="h1" gutterBottom>
+        Dashboard
+      </Typography>
+      
+      <Grid container spacing={3}>
+        {/* Summary Stats */}
+        <Grid item xs={12} sm={6} md={3}>
+          <Item>
+            <Typography variant="h6" color="primary">
+              Total Spent
+            </Typography>
+            <Typography variant="h4">
+              ${stats.totalSpent.toFixed(2)}
+            </Typography>
+          </Item>
+        </Grid>
+        
+        <Grid item xs={12} sm={6} md={3}>
+          <Item>
+            <Typography variant="h6" color="primary">
+              Total Income
+            </Typography>
+            <Typography variant="h4">
+              ${stats.totalIncome.toFixed(2)}
+            </Typography>
+          </Item>
+        </Grid>
+        
+        <Grid item xs={12} sm={6} md={3}>
+          <Item>
+            <Typography variant="h6" color="primary">
+              Transactions
+            </Typography>
+            <Typography variant="h4">
+              {stats.transactionCount}
+            </Typography>
+          </Item>
+        </Grid>
+        
+        <Grid item xs={12} sm={6} md={3}>
+          <Item>
+            <Typography variant="h6" color="primary">
+              Cards
+            </Typography>
+            <Typography variant="h4">
+              {stats.cardCount}
+            </Typography>
+          </Item>
+        </Grid>
+        
+        {/* Spending Visualization */}
+        <Grid item xs={12} md={8}>
+          <SpendingVisualization />
+        </Grid>
+        
+        {/* Recent Transactions */}
+        <Grid item xs={12} md={4}>
+          <Card>
+            <CardContent>
+              <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+                <Typography variant="h5" component="div">
+                  Recent Transactions
+                </Typography>
+                <Button
+                  component={RouterLink}
+                  to="/transactions"
+                  color="primary"
+                  size="small"
+                >
+                  View All
+                </Button>
+              </Box>
+              
+              <Divider />
+              
+              {recentTransactions.length === 0 ? (
+                <Typography variant="body2" color="textSecondary" mt={2}>
+                  No transactions found.
+                </Typography>
+              ) : (
+                recentTransactions.map((transaction) => (
+                  <Box key={transaction.id} py={1.5} borderBottom={1} borderColor="divider">
+                    <Box display="flex" justifyContent="space-between">
+                      <Typography variant="body1">
+                        {transaction.description || transaction.merchant_name || 'Unknown'}
+                      </Typography>
+                      <Typography
+                        variant="body1"
+                        color={transaction.transaction_type.toLowerCase() === 'deposit' ? 'success.main' : 'inherit'}
+                      >
+                        {transaction.transaction_type.toLowerCase() === 'deposit' ? '+' : '-'}${transaction.amount.toFixed(2)}
+                      </Typography>
+                    </Box>
+                    <Box display="flex" justifyContent="space-between" mt={0.5}>
+                      <Typography variant="body2" color="textSecondary">
+                        {transaction.category.charAt(0).toUpperCase() + transaction.category.slice(1)}
+                      </Typography>
+                      <Typography variant="body2" color="textSecondary">
+                        {formatDate(transaction.date)}
+                      </Typography>
+                    </Box>
+                  </Box>
+                ))
+              )}
+              
+              {recentTransactions.length > 0 && (
+                <Box mt={2} textAlign="center">
+                  <Button
+                    component={RouterLink}
+                    to="/transactions"
+                    variant="outlined"
+                    color="primary"
+                    size="small"
+                    fullWidth
+                  >
+                    View All Transactions
+                  </Button>
+                </Box>
+              )}
+            </CardContent>
+          </Card>
+        </Grid>
+      </Grid>
+    </Box>
+  );
+};
+
+export default Dashboard; 

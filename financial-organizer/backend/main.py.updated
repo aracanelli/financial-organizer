@@ -1,0 +1,76 @@
+from fastapi import FastAPI, Depends
+from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
+
+from app.api.api_v1.api import api_router
+from app.core.config import settings
+from app.middleware import RateLimiter, InputValidator
+from app.db.session import get_db
+
+app = FastAPI(
+    title=settings.PROJECT_NAME, openapi_url=f"{settings.API_V1_STR}/openapi.json"
+)
+
+# Set all CORS enabled origins
+if settings.BACKEND_CORS_ORIGINS:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[str(origin) for origin in settings.BACKEND_CORS_ORIGINS],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+# Add rate limiting middleware
+app.add_middleware(
+    RateLimiter,
+    rate_limit_per_minute=120,  # Limit to 120 requests per minute
+    exclude_paths=["/docs", "/redoc", "/openapi.json"]  # Exclude documentation paths
+)
+
+# Configure input validation rules
+transaction_validation_rules = {
+    "amount": {"type": "number", "required": True, "minimum": 0},
+    "transaction_type": {"type": "string", "required": True},
+    "category": {"type": "string", "required": True},
+    "description": {"type": "string"},
+    "date": {"format": "date", "required": True}
+}
+
+card_validation_rules = {
+    "card_number": {"format": "card_number", "required": True},
+    "card_type": {"type": "string", "required": True},
+    "last_four": {"type": "string", "required": True, "minLength": 4, "maxLength": 4},
+    "expiry_date": {"format": "expiry_date", "required": True}
+}
+
+validation_paths = {
+    r"/api/v1/transactions(/)?$": transaction_validation_rules,
+    r"/api/v1/cards(/)?$": card_validation_rules
+}
+
+# Add input validation middleware
+app.add_middleware(
+    InputValidator,
+    validation_rules=validation_paths
+)
+
+# Include API router
+app.include_router(api_router, prefix=settings.API_V1_STR)
+
+# Add background task for processing recurring transactions
+@app.on_event("startup")
+async def startup_event():
+    db = next(get_db())
+    try:
+        from app.services import recurring_transaction_service
+        # Process any due recurring transactions on startup
+        recurring_transaction_service.process_due_recurring_transactions(db)
+    except Exception as e:
+        print(f"Error processing recurring transactions: {e}")
+    finally:
+        db.close()
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000) 

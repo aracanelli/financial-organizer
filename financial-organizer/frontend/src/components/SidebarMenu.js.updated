@@ -1,0 +1,92 @@
+import React from 'react';
+import { Link as RouterLink, useLocation } from 'react-router-dom';
+import {
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  Divider,
+  ListSubheader,
+} from '@mui/material';
+import {
+  Dashboard as DashboardIcon,
+  Payment as PaymentIcon,
+  CreditCard as CreditCardIcon,
+  Receipt as ReceiptIcon,
+  Repeat as RecurringIcon,
+  BarChart as AnalyticsIcon,
+  Settings as SettingsIcon,
+} from '@mui/icons-material';
+
+const SidebarMenu = () => {
+  const location = useLocation();
+  
+  const menuItems = [
+    {
+      text: 'Dashboard',
+      icon: <DashboardIcon />,
+      path: '/',
+    },
+    {
+      text: 'Transactions',
+      icon: <PaymentIcon />,
+      path: '/transactions',
+    },
+    {
+      text: 'Cards',
+      icon: <CreditCardIcon />,
+      path: '/cards',
+    },
+    {
+      text: 'Recurring Transactions',
+      icon: <RecurringIcon />,
+      path: '/recurring-transactions',
+    },
+    {
+      text: 'Spending Analytics',
+      icon: <AnalyticsIcon />,
+      path: '/analytics',
+    },
+    {
+      text: 'Settings',
+      icon: <SettingsIcon />,
+      path: '/settings',
+    },
+  ];
+
+  return (
+    <>
+      <List>
+        {menuItems.slice(0, 4).map((item) => (
+          <ListItem
+            button
+            key={item.text}
+            component={RouterLink}
+            to={item.path}
+            selected={location.pathname === item.path}
+          >
+            <ListItemIcon>{item.icon}</ListItemIcon>
+            <ListItemText primary={item.text} />
+          </ListItem>
+        ))}
+      </List>
+      <Divider />
+      <List subheader={<ListSubheader>Analytics & Settings</ListSubheader>}>
+        {menuItems.slice(4).map((item) => (
+          <ListItem
+            button
+            key={item.text}
+            component={RouterLink}
+            to={item.path}
+            selected={location.pathname === item.path}
+          >
+            <ListItemIcon>{item.icon}</ListItemIcon>
+            <ListItemText primary={item.text} />
+          </ListItem>
+        ))}
+      </List>
+    </>
+  );
+};
+
+export default SidebarMenu; 
