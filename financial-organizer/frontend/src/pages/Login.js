@@ -35,7 +35,10 @@ const Login = () => {
     
     const success = await login(email, password);
     if (success) {
+      console.log('Login successful, navigating to home page');
       navigate('/');
+    } else {
+      console.error('Login failed, not navigating');
     }
   };
 
@@ -97,6 +100,7 @@ const Login = () => {
             variant="contained"
             sx={{ mt: 3, mb: 2 }}
             disabled={loading}
+            data-testid="login-button"
           >
             {loading ? <CircularProgress size={24} /> : 'Sign In'}
           </Button>

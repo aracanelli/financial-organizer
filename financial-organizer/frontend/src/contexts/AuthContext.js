@@ -46,10 +46,13 @@ export const AuthProvider = ({ children }) => {
       if (token) {
         const user = jwtDecode(token);
         setCurrentUser(user);
+        return user; // Return the user object
       }
+      return null;
     } catch (error) {
       console.error('Error fetching current user:', error);
       setError(error.message);
+      return null;
     }
   };
 
@@ -58,10 +61,20 @@ export const AuthProvider = ({ children }) => {
       setLoading(true);
       setError(null);
       
-      const response = await axios.post('/api/auth/login', {
-        username: email, // FastAPI OAuth expects 'username'
-        password,
+      console.log('Attempting login with:', { email });
+      
+      // Create form data object using URLSearchParams for x-www-form-urlencoded format
+      const formData = new URLSearchParams();
+      formData.append('username', email); // FastAPI OAuth expects 'username'
+      formData.append('password', password);
+      
+      const response = await axios.post('/api/auth/login', formData, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
       });
+      
+      console.log('Login response received:', response.status);
       
       const { access_token } = response.data;
       
@@ -69,8 +82,9 @@ export const AuthProvider = ({ children }) => {
       axios.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
       
       // Get user data with token
-      await fetchCurrentUser();
+      const user = await fetchCurrentUser();
       
+      console.log('Login successful, currentUser set:', !!user);
       return true;
     } catch (error) {
       console.error('Login error:', error);
